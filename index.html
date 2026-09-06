@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0B1020" />
+  <title>Continuum Mechanics — Interactive Visualizations</title>
+  <style>
+    :root {
+      --bg: #0B1020;
+      --panel: #121A2B;
+      --panel2: #172033;
+      --text: #EDF2F7;
+      --muted: #9FB0C7;
+      --grid: #2A3852;
+      --blue: #64B5F6;
+      --cyan: #62E3D5;
+      --orange: #FFB86B;
+      --red: #FF6B6B;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+                   "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 42px 24px;
+    }
+
+    .page {
+      width: min(1050px, 100%);
+    }
+
+    .header {
+      margin-bottom: 30px;
+    }
+
+    .eyebrow {
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 48px);
+      line-height: 1.05;
+      letter-spacing: -0.035em;
+      font-weight: 780;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+      max-width: 650px;
+      margin-top: 13px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-height: 315px;
+      padding: 22px;
+      background: var(--panel);
+      border: 1px solid var(--grid);
+      border-radius: 15px;
+      color: inherit;
+      text-decoration: none;
+      overflow: hidden;
+      transition:
+        transform 150ms ease,
+        border-color 150ms ease,
+        background 150ms ease,
+        box-shadow 150ms ease;
+    }
+
+    .card:hover,
+    .card:focus-visible {
+      transform: translateY(-3px);
+      border-color: var(--blue);
+      background: var(--panel2);
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+      outline: none;
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 27px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: var(--panel2);
+      border: 1px solid var(--grid);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .arrow {
+      color: var(--muted);
+      font-size: 22px;
+      transition: transform 150ms ease, color 150ms ease;
+    }
+
+    .card:hover .arrow,
+    .card:focus-visible .arrow {
+      color: var(--cyan);
+      transform: translateX(3px);
+    }
+
+    .visual {
+      height: 132px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 12px 0 8px;
+    }
+
+    .visual svg {
+      width: 100%;
+      height: 100%;
+      max-width: 270px;
+      overflow: visible;
+    }
+
+    .card h2 {
+      margin: 4px 0 7px;
+      font-size: 21px;
+      letter-spacing: -0.015em;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.48;
+      font-size: 13px;
+      max-width: 92%;
+    }
+
+    .footer {
+      margin-top: 22px;
+      color: #71839d;
+      font-size: 11px;
+    }
+
+    @media (max-width: 720px) {
+      body { align-items: flex-start; padding: 28px 16px; }
+      .grid { grid-template-columns: 1fr; }
+      .card { min-height: 285px; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <header class="header">
+      <div class="eyebrow">Continuum Mechanics</div>
+      <h1>Interactive Visualizations</h1>
+      <div class="subtitle">
+        Browser-based teaching tools for exploring stress, strain and linear elasticity.
+        Select a visualization to begin.
+      </div>
+    </header>
+
+    <section class="grid">
+
+      <a class="card" href="mohr_circle.html">
+        <div class="card-top">
+          <span class="tag">Stress transformation</span>
+          <span class="arrow">→</span>
+        </div>
+
+        <div class="visual">
+          <svg viewBox="0 0 280 145" role="img" aria-label="Stylized Mohr circle">
+            <line x1="24" y1="77" x2="258" y2="77"
+                  stroke="#2A3852" stroke-width="1.5"/>
+            <line x1="138" y1="16" x2="138" y2="130"
+                  stroke="#2A3852" stroke-width="1.5"/>
+            <circle cx="143" cy="76" r="48"
+                    fill="none" stroke="#64B5F6" stroke-width="4"/>
+            <line x1="143" y1="76" x2="178" y2="43"
+                  stroke="#62E3D5" stroke-width="3"/>
+            <circle cx="178" cy="43" r="5.5" fill="#62E3D5"/>
+            <circle cx="95" cy="76" r="4.5" fill="#FF6B6B"/>
+            <circle cx="191" cy="76" r="4.5" fill="#FF6B6B"/>
+            <text x="249" y="69" fill="#9FB0C7" font-size="11">σ</text>
+            <text x="146" y="19" fill="#9FB0C7" font-size="11">τ</text>
+          </svg>
+        </div>
+
+        <h2>Mohr's Circle</h2>
+        <p>
+          Explore normal and shear stress, stress transformation, principal stresses
+          and failure criteria interactively.
+        </p>
+      </a>
+
+      <a class="card" href="linear_elasticity_visualizer.html">
+        <div class="card-top">
+          <span class="tag">Linear elasticity</span>
+          <span class="arrow">→</span>
+        </div>
+
+        <div class="visual">
+          <svg viewBox="0 0 280 145" role="img" aria-label="Stylized elastic volume element">
+            <polygon points="83,45 162,30 206,55 127,72"
+                     fill="#172033" stroke="#64B5F6" stroke-width="2.5"/>
+            <polygon points="127,72 206,55 205,112 126,130"
+                     fill="#172033" stroke="#64B5F6" stroke-width="2.5"/>
+            <polygon points="83,45 127,72 126,130 82,101"
+                     fill="#172033" stroke="#64B5F6" stroke-width="2.5"/>
+
+            <line x1="83" y1="45" x2="82" y2="101"
+                  stroke="#64B5F6" stroke-width="2.5"/>
+            <line x1="162" y1="30" x2="161" y2="87"
+                  stroke="#2A3852" stroke-width="1.5" stroke-dasharray="4 4"/>
+            <line x1="161" y1="87" x2="205" y2="112"
+                  stroke="#2A3852" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+            <line x1="215" y1="83" x2="251" y2="83"
+                  stroke="#64B5F6" stroke-width="3"/>
+            <polygon points="251,83 241,77 241,89" fill="#64B5F6"/>
+
+            <line x1="112" y1="35" x2="124" y2="12"
+                  stroke="#FFB86B" stroke-width="3"/>
+            <polygon points="124,12 116,19 127,23" fill="#FFB86B"/>
+
+            <line x1="69" y1="78" x2="38" y2="70"
+                  stroke="#64B5F6" stroke-width="3"/>
+            <polygon points="38,70 49,67 46,78" fill="#64B5F6"/>
+          </svg>
+        </div>
+
+        <h2>Linear Elasticity</h2>
+        <p>
+          Investigate uniaxial and plane stress or strain, pure shear and isotropic
+          loading using a deformable 3-D volume element.
+        </p>
+      </a>
+
+    </section>
+
+    <div class="footer">
+      Interactive classroom tools · Continuum mechanics
+    </div>
+  </main>
+</body>
+</html>
