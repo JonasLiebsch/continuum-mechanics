@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mohr Circle Classroom</title>
+  <meta name="description" content="Interactive Mohr circle, stress transformation and Mohr-Coulomb failure envelope classroom visualization." />
+  <script src="https://cdn.plot.ly/plotly-4.0.0.min.js" charset="utf-8"></script>
+  <style>
+    :root {
+      --bg:#0B1020;
+      --panel:#121A2B;
+      --panel2:#172033;
+      --text:#EDF2F7;
+      --muted:#9FB0C7;
+      --grid:#2A3852;
+      --blue:#64B5F6;
+      --cyan:#62E3D5;
+      --orange:#FFB86B;
+      --red:#FF6B6B;
+      --green:#64D98B;
+      --white:#FFFFFF;
+    }
+
+    * { box-sizing:border-box; }
+    html { color-scheme:dark; background:var(--bg); }
+    body {
+      margin:0;
+      min-height:100vh;
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter,"Segoe UI",Arial,sans-serif;
+    }
+    button,input { font:inherit; }
+
+    .page { padding:22px; max-width:1680px; margin:0 auto; }
+    .header {
+      display:flex; align-items:center; justify-content:space-between;
+      gap:16px; margin-bottom:18px;
+    }
+    h1 { margin:0; font-size:30px; letter-spacing:-0.6px; }
+    .subtitle { color:var(--muted); font-size:14px; margin-top:5px; }
+    .pill {
+      padding:6px 10px; border-radius:999px; background:var(--panel2);
+      border:1px solid var(--grid); font-size:12px; color:var(--muted);
+      white-space:nowrap;
+    }
+
+    .layout {
+      display:grid; grid-template-columns:280px minmax(0,1fr);
+      gap:14px; align-items:start;
+    }
+    .panel {
+      background:var(--panel); border:1px solid var(--grid);
+      border-radius:14px; padding:18px;
+    }
+    .controls { position:sticky; top:12px; }
+    .section-title { font-weight:700; font-size:16px; margin-bottom:12px; }
+    .section-sub { font-size:12px; color:var(--muted); margin:-7px 0 10px; }
+    .divider { height:1px; background:var(--grid); margin:18px 0; }
+    .criterion { margin-top:10px; font-family:"Cambria Math",serif; font-size:14px; color:var(--red); }
+    .tip { font-size:12px; color:var(--muted); margin-top:16px; line-height:1.45; }
+
+    .control { padding:1px 0 8px; }
+    .control label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+    .control-row {
+      display:grid; grid-template-columns:minmax(0,1fr) 82px;
+      gap:10px; align-items:center; min-width:0;
+    }
+    input[type="range"] {
+      width:100%; min-width:0; accent-color:var(--cyan); cursor:pointer;
+    }
+    .number-input {
+      width:82px; height:34px; padding:5px 8px;
+      border:1px solid #50617E; border-radius:7px;
+      background:#0E1728; color:#fff; -webkit-text-fill-color:#fff;
+      caret-color:#fff; opacity:1; font-weight:600; font-size:13px;
+      text-align:right; color-scheme:dark;
+    }
+    .number-input:hover { border-color:#6D82A3; }
+    .number-input:focus {
+      outline:2px solid var(--cyan); outline-offset:1px;
+      border-color:var(--cyan); background:#101C30;
+    }
+    .range-marks {
+      display:flex; justify-content:space-between; color:#AFC0D7;
+      font-size:10px; margin-top:3px; padding:0 2px;
+    }
+
+    .status {
+      border-radius:11px; padding:10px 13px; margin-bottom:12px;
+      transition:background .15s ease,border-color .15s ease,color .15s ease;
+    }
+    .status.stable { background:rgba(100,217,139,.12); border:1px solid var(--green); color:var(--green); }
+    .status.failure { background:rgba(255,107,107,.14); border:1px solid var(--red); color:var(--red); }
+    .status-title { font-weight:800; letter-spacing:.7px; }
+    .status-detail { font-size:13px; margin-top:3px; }
+
+    .metrics {
+      display:grid; grid-template-columns:repeat(5,minmax(110px,1fr));
+      gap:8px; margin:12px 0;
+    }
+    .metric {
+      background:var(--panel2); border:1px solid var(--grid);
+      border-radius:10px; padding:10px 12px; min-width:0;
+    }
+    .metric-label { font-size:12px; color:var(--muted); }
+    .metric-value { font-size:20px; font-weight:650; margin-top:2px; white-space:nowrap; }
+
+    .visuals {
+      display:grid; grid-template-columns:minmax(340px,.85fr) minmax(460px,1.15fr);
+      gap:12px;
+    }
+    .viz-card {
+      min-width:0; background:var(--panel); border:1px solid var(--grid);
+      border-radius:14px; overflow:hidden;
+    }
+    .viz-title { font-size:18px; font-weight:650; padding:16px 18px 0; }
+    .element-wrap { position:relative; height:455px; padding:4px 10px 10px; }
+    #stress-svg { width:100%; height:100%; display:block; }
+    .selected-readout {
+      position:absolute; right:16px; bottom:16px; background:rgba(11,16,32,.88);
+      border:1px solid var(--grid); border-radius:8px; padding:7px 9px;
+      font-size:14px; line-height:1.45; pointer-events:none;
+    }
+    #mohr-plot { height:500px; width:100%; }
+    .convention {
+      font-size:12px; color:var(--muted); line-height:1.5; padding:10px 2px 0;
+    }
+    .convention strong { color:var(--text); }
+
+    @media (max-width:1100px) {
+      .metrics { grid-template-columns:repeat(3,minmax(110px,1fr)); }
+      .visuals { grid-template-columns:1fr; }
+      .element-wrap { height:420px; }
+    }
+    @media (max-width:760px) {
+      .page { padding:12px; }
+      .header { align-items:flex-start; }
+      .layout { grid-template-columns:1fr; }
+      .controls { position:static; }
+      .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .metric-value { font-size:17px; }
+      .element-wrap { height:380px; }
+      #mohr-plot { height:500px; }
+    }
+    @media (max-width:420px) {
+      .header { flex-direction:column; }
+      .metrics { grid-template-columns:1fr 1fr; }
+      .control-row { grid-template-columns:minmax(0,1fr) 78px; }
+      .number-input { width:78px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <div>
+        <h1>Mohr circle</h1>
+        <div class="subtitle">Interactive plane-stress transformation &amp; Mohr–Coulomb failure</div>
+      </div>
+      <div class="pill">compression +</div>
+    </header>
+
+    <div class="layout">
+      <aside class="panel controls">
+        <div class="section-title">Stress state</div>
+
+        <div class="control">
+          <label for="sx">σ<sub>x</sub> [MPa]</label>
+          <div class="control-row">
+            <input id="sx" type="range" min="-500" max="500" step="1" value="80" />
+            <input id="sx-num" class="number-input" type="number" min="-500" max="500" step="1" value="80" />
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="sy">σ<sub>y</sub> [MPa]</label>
+          <div class="control-row">
+            <input id="sy" type="range" min="-500" max="500" step="1" value="20" />
+            <input id="sy-num" class="number-input" type="number" min="-500" max="500" step="1" value="20" />
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="txy">τ<sub>xy</sub> [MPa]</label>
+          <div class="control-row">
+            <input id="txy" type="range" min="-300" max="300" step="1" value="15" />
+            <input id="txy-num" class="number-input" type="number" min="-300" max="300" step="1" value="15" />
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="section-title">Failure criterion</div>
+
+        <div class="control">
+          <label for="cohesion">Cohesion c [MPa]</label>
+          <div class="control-row">
+            <input id="cohesion" type="range" min="0" max="200" step="0.5" value="10" />
+            <input id="cohesion-num" class="number-input" type="number" min="0" max="200" step="0.5" value="10" />
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="phi">Friction angle φ [°]</label>
+          <div class="control-row">
+            <input id="phi" type="range" min="0" max="89" step="0.5" value="30" />
+            <input id="phi-num" class="number-input" type="number" min="0" max="89" step="0.5" value="30" />
+          </div>
+        </div>
+
+        <div class="criterion">|τ| ≤ c + σ<sub>n</sub> tan φ</div>
+
+        <div class="divider"></div>
+        <div class="section-title">Plane orientation</div>
+        <div class="section-sub">θ: +x → plane normal n</div>
+
+        <div class="control">
+          <div class="control-row">
+            <input id="theta" type="range" min="-90" max="90" step="0.5" value="25" aria-label="Plane angle theta" />
+            <input id="theta-num" class="number-input" type="number" min="-90" max="90" step="0.5" value="25" aria-label="Plane angle theta numeric input" />
+          </div>
+          <div class="range-marks"><span>−90°</span><span>−45°</span><span>0°</span><span>45°</span><span>90°</span></div>
+        </div>
+
+        <div class="tip">Tip: click the blue Mohr circle to select a plane.</div>
+      </aside>
+
+      <section style="min-width:0">
+        <div id="status" class="status stable">
+          <div id="status-title" class="status-title">STABLE</div>
+          <div id="status-detail" class="status-detail"></div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Selected θ</div><div id="metric-theta" class="metric-value" style="color:var(--cyan)"></div></div>
+          <div class="metric"><div class="metric-label">σ<sub>n</sub></div><div id="metric-sn" class="metric-value" style="color:var(--cyan)"></div></div>
+          <div class="metric"><div class="metric-label">τ<sub>n</sub></div><div id="metric-tn" class="metric-value" style="color:var(--orange)"></div></div>
+          <div class="metric"><div class="metric-label">σ<sub>max</sub> / σ<sub>min</sub></div><div id="metric-principal" class="metric-value"></div></div>
+          <div class="metric"><div class="metric-label">τ<sub>max</sub></div><div id="metric-tmax" class="metric-value"></div></div>
+        </div>
+
+        <div class="visuals">
+          <div class="viz-card">
+            <div class="viz-title">Stress element &amp; selected plane</div>
+            <div class="element-wrap">
+              <svg id="stress-svg" viewBox="0 0 500 500" role="img" aria-label="Stress element showing sigma x, sigma y, tau xy and selected plane">
+                <defs>
+                  <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#64B5F6"/></marker>
+                  <marker id="arrow-cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#62E3D5"/></marker>
+                  <marker id="arrow-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#FFB86B"/></marker>
+                  <marker id="arrow-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#FF6B6B"/></marker>
+                </defs>
+                <rect x="163.2" y="163.2" width="173.6" height="173.6" fill="rgba(255,255,255,0.035)" stroke="#FFFFFF" stroke-width="2"/>
+                <g id="stress-dynamic"></g>
+              </svg>
+              <div class="selected-readout">
+                <div id="readout-sn" style="color:var(--red)"></div>
+                <div id="readout-tn" style="color:var(--orange)"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="viz-card">
+            <div id="mohr-plot" aria-label="Mohr circle and failure envelope"></div>
+          </div>
+        </div>
+
+        <div class="convention"><strong>Convention:</strong> compression positive; θ is counter-clockwise from +x to the plane normal. Positive τ<sub>xy</sub> acts +y on the +x face. The selected Mohr point rotates by −2θ. Mohr–Coulomb shown here has no tensile cut-off.</div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const COLORS = {
+        bg:'#0B1020', panel:'#121A2B', panel2:'#172033', text:'#EDF2F7', muted:'#9FB0C7',
+        grid:'#2A3852', blue:'#64B5F6', cyan:'#62E3D5', orange:'#FFB86B', red:'#FF6B6B',
+        green:'#64D98B', white:'#FFFFFF'
+      };
+      const RAD = Math.PI / 180;
+      const ids = ['sx','sy','txy','cohesion','phi','theta'];
+      const state = { sx:80, sy:20, txy:15, cohesion:10, phi:30, theta:25 };
+      let plotReady = false;
+      let framePending = false;
+
+      const $ = id => document.getElementById(id);
+      const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+      const fmt = (v, digits=1) => Number(v).toFixed(digits);
+
+      function transformedStress(thetaDeg) {
+        const th = thetaDeg * RAD;
+        const avg = 0.5 * (state.sx + state.sy);
+        const diff = 0.5 * (state.sx - state.sy);
+        return {
+          sn: avg + diff * Math.cos(2*th) + state.txy * Math.sin(2*th),
+          tn: -diff * Math.sin(2*th) + state.txy * Math.cos(2*th)
+        };
+      }
+
+      function circleProperties() {
+        const center = 0.5 * (state.sx + state.sy);
+        const diff = 0.5 * (state.sx - state.sy);
+        const radius = Math.hypot(diff, state.txy);
+        return { center, diff, radius, smax:center+radius, smin:center-radius };
+      }
+
+      function failureState() {
+        const {center, diff, radius} = circleProperties();
+        const ph = state.phi * RAD;
+        const slope = Math.tan(ph);
+        const margin = state.cohesion + center*slope - radius/Math.cos(ph);
+
+        if (radius < 1e-12) {
+          return { fails:margin<=0, margin, theta:0, sn:center, tau:0 };
+        }
+        const alpha0 = Math.atan2(state.txy, diff);
+        const alphaCrit = Math.PI/2 + ph;
+        let theta = 0.5*(alpha0-alphaCrit)/RAD;
+        theta = ((theta+90)%180+180)%180-90;
+        return {
+          fails:margin<=0,
+          margin,
+          theta,
+          sn:center-radius*Math.sin(ph),
+          tau:radius*Math.cos(ph)
+        };
+      }
+
+      function svgLine(x0,y0,x1,y1,color,width=2.5,marker=true) {
+        const markerId = color === COLORS.blue ? 'arrow-blue' : color === COLORS.cyan ? 'arrow-cyan' : color === COLORS.red ? 'arrow-red' : 'arrow-orange';
+        return `<line x1="${px(x0)}" y1="${py(y0)}" x2="${px(x1)}" y2="${py(y1)}" stroke="${color}" stroke-width="${width}" stroke-linecap="round" ${marker ? `marker-end="url(#${markerId})"` : ''}/>`;
+      }
+      function svgText(x,y,text,color,size=13,anchor='middle') {
+        return `<text x="${px(x)}" y="${py(y)}" fill="${color}" font-size="${size}" text-anchor="${anchor}" dominant-baseline="middle" font-family="Inter, Segoe UI, Arial">${text}</text>`;
+      }
+      function px(x) { return 250 + 140*x; }
+      function py(y) { return 250 - 140*y; }
+
+      function stressElementHTML(sn,tn) {
+        const maxStress = Math.max(Math.abs(state.sx),Math.abs(state.sy),Math.abs(state.txy),1);
+        const sx = state.sx, sy = state.sy, txy = state.txy;
+        let h = '';
+
+        const lx = 0.35 + 0.35*Math.abs(sx)/maxStress;
+        const ly = 0.35 + 0.35*Math.abs(sy)/maxStress;
+        if (sx >= 0) {
+          h += svgLine(0.62+lx,0,0.66,0,COLORS.blue);
+          h += svgLine(-0.62-lx,0,-0.66,0,COLORS.blue);
+        } else {
+          h += svgLine(0.66,0,0.62+lx,0,COLORS.blue);
+          h += svgLine(-0.66,0,-0.62-lx,0,COLORS.blue);
+        }
+        h += svgText(1.13,-0.13,`σx = ${Number(sx).toFixed(1)}`,COLORS.blue,13,'middle');
+
+        if (sy >= 0) {
+          h += svgLine(0,0.62+ly,0,0.66,COLORS.blue);
+          h += svgLine(0,-0.62-ly,0,-0.66,COLORS.blue);
+        } else {
+          h += svgLine(0,0.66,0,0.62+ly,COLORS.blue);
+          h += svgLine(0,-0.66,0,-0.62-ly,COLORS.blue);
+        }
+        h += svgText(-0.25,1.18,`σy = ${Number(sy).toFixed(1)}`,COLORS.blue,13,'middle');
+
+        const shearSign = txy >= 0 ? 1 : -1;
+        const lt = 0.28 + 0.34*Math.abs(txy)/maxStress;
+        h += svgLine(0.66,-shearSign*lt/2,0.66,shearSign*lt/2,COLORS.orange);
+        h += svgLine(-0.66,shearSign*lt/2,-0.66,-shearSign*lt/2,COLORS.orange);
+        h += svgLine(-shearSign*lt/2,0.66,shearSign*lt/2,0.66,COLORS.orange);
+        h += svgLine(shearSign*lt/2,-0.66,-shearSign*lt/2,-0.66,COLORS.orange);
+        h += svgText(0,0.83,`τxy = ${Number(txy).toFixed(1)}`,COLORS.orange,13,'middle');
+
+        const th = state.theta*RAD;
+        const nx = Math.cos(th), ny = Math.sin(th);
+        const mx = -Math.sin(th), my = Math.cos(th);
+        h += svgLine(-0.86*mx,-0.86*my,0.86*mx,0.86*my,COLORS.cyan,4,false);
+        h += svgLine(0,0,0.78*nx,0.78*ny,COLORS.cyan,2.6,true);
+        h += svgText(0.88*nx,0.88*ny,'n',COLORS.cyan,14,'middle');
+
+        const localScale = Math.max(Math.abs(sn),Math.abs(tn),maxStress,1);
+        const ln = 0.42*Math.abs(sn)/localScale;
+        const lt2 = 0.42*Math.abs(tn)/localScale;
+        if (Math.abs(sn)>1e-12) {
+          const s = sn>=0 ? 1 : -1;
+          h += svgLine(0,0,-s*nx*ln,-s*ny*ln,COLORS.red,3,true);
+        }
+        if (Math.abs(tn)>1e-12) {
+          const s = tn>=0 ? 1 : -1;
+          h += svgLine(0,0,s*mx*lt2,s*my*lt2,COLORS.orange,3,true);
+        }
+
+        const arcR = 0.26;
+        const steps = 32;
+        let d = '';
+        for (let i=0;i<=steps;i++) {
+          const a = th*i/steps;
+          const x = px(arcR*Math.cos(a)), y = py(arcR*Math.sin(a));
+          d += (i===0 ? `M${x},${y}` : ` L${x},${y}`);
+        }
+        h += `<path d="${d}" fill="none" stroke="${COLORS.cyan}" stroke-width="2"/>`;
+        const mid = .5*th;
+        h += svgText(.36*Math.cos(mid),.36*Math.sin(mid),`θ = ${state.theta.toFixed(1)}°`,COLORS.cyan,13,'middle');
+        return h;
+      }
+
+      function buildMohrData() {
+        const {center,diff,radius,smax,smin} = circleProperties();
+        const selected = transformedStress(state.theta);
+        const crit = failureState();
+        const thetaGrid = [], circleX = [], circleY = [];
+        for (let i=0;i<=180;i++) {
+          const td = -90+i;
+          const v = transformedStress(td);
+          thetaGrid.push(td); circleX.push(v.sn); circleY.push(v.tn);
+        }
+
+        const span = Math.max(2*radius,Math.abs(smax),Math.abs(smin),Math.abs(state.cohesion),10);
+        const xMin = Math.min(smin-.18*span,-.12*span);
+        const xMax = Math.max(smax+.18*span,.35*span);
+        const slope = Math.tan(state.phi*RAD);
+        const envX = [xMin,xMax];
+        const envY = [state.cohesion+xMin*slope,state.cohesion+xMax*slope];
+        const yExtent = Math.max(radius*1.35,Math.max(Math.abs(envY[0]),Math.abs(envY[1]))*1.05,Math.abs(state.txy)*1.4,5);
+
+        const arcX=[], arcY=[];
+        let annotation=[];
+        if (radius>1e-12) {
+          const a0=Math.atan2(state.txy,diff);
+          const a1=a0-2*state.theta*RAD;
+          const arcR=.28*radius;
+          for (let i=0;i<=30;i++) {
+            const a=a0+(a1-a0)*i/30;
+            arcX.push(center+arcR*Math.cos(a)); arcY.push(arcR*Math.sin(a));
+          }
+          const am=.5*(a0+a1);
+          annotation=[{
+            x:center+.38*radius*Math.cos(am), y:.38*radius*Math.sin(am), text:'−2θ',
+            showarrow:false, font:{color:COLORS.cyan,size:13}, bgcolor:'rgba(11,16,32,.72)', borderpad:2
+          }];
+        }
+
+        const data = [
+          {x:envX,y:envY,mode:'lines',name:'Mohr–Coulomb',line:{color:COLORS.red,width:2.5,dash:'dash'},hovertemplate:'Failure envelope<br>σn=%{x:.2f}<br>τf=%{y:.2f}<extra></extra>'},
+          {x:envX,y:envY.map(v=>-v),mode:'lines',showlegend:false,line:{color:COLORS.red,width:2.5,dash:'dash'},hovertemplate:'Failure envelope<br>σn=%{x:.2f}<br>τf=%{y:.2f}<extra></extra>'},
+          {x:circleX,y:circleY,mode:'lines',name:'Mohr circle',customdata:thetaGrid,line:{color:COLORS.blue,width:4},hovertemplate:'θ=%{customdata:.1f}°<br>σn=%{x:.2f}<br>τn=%{y:.2f}<extra>click to select</extra>'},
+          {x:[state.sx,state.sy],y:[state.txy,-state.txy],mode:'markers+text',text:['x-face','y-face'],textposition:['top right','bottom left'],marker:{size:9,color:COLORS.white,line:{color:COLORS.bg,width:1}},name:'Original faces',hovertemplate:'%{text}<br>σ=%{x:.2f}<br>τ=%{y:.2f}<extra></extra>'},
+          {x:[center,selected.sn],y:[0,selected.tn],mode:'lines',line:{color:COLORS.cyan,width:2},hoverinfo:'skip',showlegend:false},
+          {x:[selected.sn],y:[selected.tn],mode:'markers',marker:{size:13,color:COLORS.cyan,line:{color:COLORS.white,width:1}},name:'Selected plane',hovertemplate:`θ=${state.theta.toFixed(1)}°<br>σn=%{x:.2f}<br>τn=%{y:.2f}<extra></extra>`},
+          {x:[crit.sn],y:[crit.tau],mode:'markers',marker:{size:11,symbol:'diamond',color:COLORS.red},name:'Critical plane',hovertemplate:`critical θ=${crit.theta.toFixed(1)}°<br>σn=%{x:.2f}<br>τ=%{y:.2f}<extra></extra>`},
+          {x:[smin,center,smax],y:[0,0,0],mode:'markers+text',text:['σmin','C','σmax'],textposition:'bottom center',marker:{size:[8,7,8],color:[COLORS.white,COLORS.muted,COLORS.white]},hovertemplate:'%{text}: %{x:.2f}<extra></extra>',showlegend:false},
+          {x:arcX,y:arcY,mode:'lines',line:{color:COLORS.cyan,width:2},hoverinfo:'skip',showlegend:false}
+        ];
+
+        const layout = {
+          title:{text:'Mohr circle & failure envelope',x:.03,xanchor:'left',font:{size:18,color:COLORS.text}},
+          paper_bgcolor:COLORS.panel, plot_bgcolor:COLORS.panel,
+          font:{color:COLORS.text,family:'Inter, Segoe UI, Arial'},
+          margin:{l:62,r:25,t:56,b:140},
+          xaxis:{title:'Normal stress σn [MPa]',range:[xMin,xMax],gridcolor:COLORS.grid,zeroline:false},
+          yaxis:{title:'Shear stress τ [MPa]',range:[-yExtent,yExtent],gridcolor:COLORS.grid,zeroline:false,scaleanchor:'x',scaleratio:1},
+          legend:{orientation:'h',yanchor:'top',y:-.24,xanchor:'center',x:.5,title:{text:''}},
+          hovermode:'closest',clickmode:'event',annotations:annotation,
+          shapes:[
+            {type:'line',x0:xMin,x1:xMax,y0:0,y1:0,line:{width:1,color:COLORS.grid}},
+            {type:'line',x0:0,x1:0,y0:-yExtent,y1:yExtent,line:{width:1,color:COLORS.grid}}
+          ],
+          uirevision:'mohr-static-page'
+        };
+        return {data,layout,selected,crit,radius,smax,smin};
+      }
+
+      function updateUI() {
+        framePending = false;
+        const selected = transformedStress(state.theta);
+        const crit = failureState();
+        const props = circleProperties();
+
+        $('stress-dynamic').innerHTML = stressElementHTML(selected.sn,selected.tn);
+        $('readout-sn').innerHTML = `σ<sub>n</sub> = ${selected.sn.toFixed(2)} MPa`;
+        $('readout-tn').innerHTML = `τ<sub>n</sub> = ${selected.tn.toFixed(2)} MPa`;
+
+        $('metric-theta').textContent = `${state.theta.toFixed(1)}°`;
+        $('metric-sn').textContent = `${selected.sn.toFixed(2)} MPa`;
+        $('metric-tn').textContent = `${selected.tn.toFixed(2)} MPa`;
+        $('metric-principal').textContent = `${props.smax.toFixed(1)} / ${props.smin.toFixed(1)}`;
+        $('metric-tmax').textContent = `${props.radius.toFixed(1)} MPa`;
+
+        const status = $('status');
+        status.className = `status ${crit.fails ? 'failure' : 'stable'}`;
+        $('status-title').textContent = crit.fails ? 'FAILURE' : 'STABLE';
+        $('status-detail').textContent = crit.fails
+          ? `Mohr circle reaches/exceeds the envelope. Minimum margin = ${crit.margin.toFixed(2)} MPa near θ = ${crit.theta.toFixed(1)}°.`
+          : `Circle remains inside the Mohr–Coulomb envelope. Minimum margin = ${crit.margin.toFixed(2)} MPa.`;
+
+        const mohr = buildMohrData();
+        if (!plotReady) {
+          Plotly.newPlot('mohr-plot',mohr.data,mohr.layout,{displaylogo:false,scrollZoom:false,responsive:true,modeBarButtonsToRemove:['lasso2d','select2d']}).then(() => {
+            plotReady = true;
+            const plot = $('mohr-plot');
+            plot.on('plotly_click', ev => {
+              if (!ev || !ev.points || !ev.points.length) return;
+              const p = ev.points[0];
+              if (p.curveNumber !== 2 || p.customdata === undefined || p.customdata === null) return;
+              const theta = clamp(Math.round(Number(p.customdata)*2)/2,-90,90);
+              state.theta = theta;
+              $('theta').value = theta;
+              $('theta-num').value = theta;
+              scheduleUpdate();
+            });
+          });
+        } else {
+          Plotly.react('mohr-plot',mohr.data,mohr.layout,{displaylogo:false,scrollZoom:false,responsive:true,modeBarButtonsToRemove:['lasso2d','select2d']});
+        }
+      }
+
+      function scheduleUpdate() {
+        if (framePending) return;
+        framePending = true;
+        requestAnimationFrame(updateUI);
+      }
+
+      function bindControl(id, lo, hi) {
+        const slider = $(id);
+        const number = $(`${id}-num`);
+        const set = raw => {
+          let v = Number(raw);
+          if (!Number.isFinite(v)) return;
+          v = clamp(v,lo,hi);
+          state[id] = v;
+          slider.value = v;
+          number.value = v;
+          scheduleUpdate();
+        };
+        slider.addEventListener('input', () => set(slider.value));
+        number.addEventListener('input', () => set(number.value));
+        number.addEventListener('change', () => set(number.value));
+      }
+
+      bindControl('sx',-500,500);
+      bindControl('sy',-500,500);
+      bindControl('txy',-300,300);
+      bindControl('cohesion',0,200);
+      bindControl('phi',0,89);
+      bindControl('theta',-90,90);
+
+      updateUI();
+    })();
+  </script>
+</body>
+</html>
