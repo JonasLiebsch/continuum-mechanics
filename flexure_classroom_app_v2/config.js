@@ -8,12 +8,12 @@
 
 window.FLEXURE_CONFIG = {
   firebaseConfig: {
-    apiKey: "PASTE_FIREBASE_API_KEY_HERE",
-    authDomain: "PASTE_PROJECT.firebaseapp.com",
-    projectId: "PASTE_PROJECT_ID",
-    storageBucket: "PASTE_PROJECT.firebasestorage.app",
-    messagingSenderId: "PASTE_SENDER_ID",
-    appId: "PASTE_APP_ID"
+    apiKey: "AIzaSyAyqG1tqcHcPbwld0lSEiSNHKEH_r8AHnU",
+    authDomain: "coontinum-mechanics-flexure.firebaseapp.com",
+    projectId: "coontinum-mechanics-flexure",
+    storageBucket: "coontinum-mechanics-flexure.firebasestorage.app",
+    messagingSenderId: "240730169603",
+    appId: "1:240730169603:web:b8488d50b35b870a2e0936"
   },
 
   currentSession: "2026-geodynamics",
