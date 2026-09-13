@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function validMeasurement(data) {
+      return data.Lcm is number
+        && data.xCm is number
+        && data.wCm is number
+        && data.groupName is string
+        && data.ownerUid is string
+        && data.Lcm > 0
+        && data.Lcm <= 1000
+        && data.xCm >= 0
+        && data.xCm <= data.Lcm
+        && data.wCm >= -1000
+        && data.wCm <= 1000
+        && data.groupName.size() <= 32;
+    }
+
+    match /sessions/{sessionId}/measurements/{measurementId} {
+      // Students are signed in anonymously, so they need no account of their own.
+      allow read: if signedIn();
+
+      // Normal measurements must belong to the current anonymous user.
+      // imported=true is deliberately allowed so the simple password-protected
+      // classroom import tool can restore archived data without an admin account.
+      allow create: if signedIn()
+        && validMeasurement(request.resource.data)
+        && (request.resource.data.ownerUid == request.auth.uid
+            || (request.resource.data.keys().hasAny(['imported'])
+                && request.resource.data.imported == true));
+
+      // Students can correct their own measurements, including L.
+      allow update: if signedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && validMeasurement(request.resource.data);
+
+      // Deliberately permissive to allow a client-side "clear session" button.
+      // The webpage adds a simple visible password as a classroom deterrent,
+      // but this is NOT strong security: a determined user can bypass the UI.
+      allow delete: if signedIn();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

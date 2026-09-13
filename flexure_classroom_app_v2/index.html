@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Plate flexure classroom experiment</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1>Cantilever plate flexure</h1>
+        <p>Class experiment · uniform load · fixed at one end</p>
+      </div>
+      <div class="status-cluster">
+        <span id="sessionBadge" class="pill">session</span>
+        <span id="connectionBadge" class="pill muted">starting…</span>
+      </div>
+    </header>
+
+    <section class="layout">
+      <aside class="panel controls-panel">
+        <section class="control-section">
+          <div class="section-heading">Your group</div>
+          <label class="field-label" for="groupName">Name / group label</label>
+          <div class="inline-row">
+            <input id="groupName" type="text" maxlength="32" placeholder="e.g. Group 4" />
+            <button id="saveGroupName" class="button secondary" type="button">Save</button>
+          </div>
+          <p class="hint">Your browser identity controls which points you may edit or delete.</p>
+        </section>
+
+        <div class="divider"></div>
+
+        <section class="control-section">
+          <div class="section-heading">Model fit</div>
+
+          <div class="control-row">
+            <div class="control-label-row">
+              <label for="qSlider">Uniform load q</label>
+              <output id="qValue">0.80 N m⁻²</output>
+            </div>
+            <input id="qSlider" type="range" />
+          </div>
+
+          <div class="control-row">
+            <div class="control-label-row">
+              <label for="dSlider">Flexural rigidity D</label>
+              <output id="dValue">2.50 × 10⁻⁴ N m</output>
+            </div>
+            <input id="dSlider" type="range" />
+          </div>
+
+          <div class="formula-card">
+            <div class="formula">w(x) = (q x² / D)(x²/24 − Lx/6 + L²/4)</div>
+            <div class="formula-sub">fixed end: w(0)=w′(0)=0 · free end: w″(L)=w‴(L)=0</div>
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric-card">
+              <span>Selected L</span>
+              <strong id="metricL">—</strong>
+            </div>
+            <div class="metric-card">
+              <span>Predicted w<sub>max</sub></span>
+              <strong id="metricWmax">—</strong>
+            </div>
+          </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <section class="control-section">
+          <div class="section-heading">Add measurement</div>
+          <form id="measurementForm">
+            <div class="input-grid three">
+              <label>
+                <span>L [cm]</span>
+                <input id="lInput" type="number" inputmode="decimal" min="0.1" step="0.1" placeholder="e.g. 30" required />
+              </label>
+              <label>
+                <span>x [cm]</span>
+                <input id="xInput" type="number" inputmode="decimal" min="0" step="0.1" required />
+              </label>
+              <label>
+                <span>w [cm] ↓</span>
+                <input id="wInput" type="number" inputmode="decimal" step="0.1" required />
+              </label>
+            </div>
+            <p class="hint">A new L tab appears automatically when the first measurement for that length is added.</p>
+            <div class="inline-row action-row">
+              <button id="submitMeasurement" class="button primary" type="submit">Add point</button>
+              <button id="cancelEdit" class="button ghost hidden" type="button">Cancel edit</button>
+            </div>
+            <div id="formMessage" class="message" aria-live="polite"></div>
+          </form>
+        </section>
+      </aside>
+
+      <section class="main-column">
+        <div class="panel graph-panel">
+          <div class="tabs-wrap">
+            <div id="lengthTabs" class="tabs" role="tablist" aria-label="Plate length"></div>
+          </div>
+
+          <div class="graph-header">
+            <div>
+              <div id="graphTitle" class="section-heading">Measurements</div>
+              <div id="graphSubtitle" class="hint">Downward deflection is positive.</div>
+            </div>
+            <div id="pointCount" class="pill muted">0 points</div>
+          </div>
+
+          <div class="chart-wrap">
+            <canvas id="flexureChart"></canvas>
+          </div>
+        </div>
+
+        <div class="lower-grid">
+          <section class="panel measurements-panel">
+            <div class="panel-heading-row">
+              <div>
+                <div class="section-heading">Your measurements</div>
+                <div class="hint">Only your points have edit/delete controls.</div>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>L [cm]</th><th>x [cm]</th><th>w [cm]</th><th></th></tr>
+                </thead>
+                <tbody id="ownMeasurementsBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel data-panel">
+            <div class="section-heading">Class data</div>
+            <p class="hint">Download is available to everyone. Import and reset use a simple classroom password.</p>
+            <div class="button-stack">
+              <button id="downloadJson" class="button secondary" type="button">Download session JSON</button>
+              <button id="instructorToggle" class="button ghost" type="button">Instructor tools</button>
+            </div>
+
+            <div id="instructorPanel" class="instructor-panel hidden">
+              <label class="field-label" for="toolPassword">Classroom password</label>
+              <input id="toolPassword" type="password" autocomplete="off" placeholder="Password for import/reset" />
+              <p class="hint">This is only a low-effort deterrent; the password is visible in config.js.</p>
+
+              <label class="check-row">
+                <input id="replaceOnImport" type="checkbox" />
+                <span>Replace current session before import</span>
+              </label>
+              <input id="jsonFile" type="file" accept="application/json,.json" class="file-input" />
+              <button id="importJson" class="button secondary full" type="button">Import selected JSON</button>
+
+              <div class="danger-zone">
+                <label class="field-label" for="clearConfirm">Type the session name to clear all points</label>
+                <input id="clearConfirm" type="text" />
+                <button id="clearAll" class="button danger full" type="button">Clear current session</button>
+              </div>
+
+              <div id="adminMessage" class="message" aria-live="polite"></div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </section>
+
+    <footer>
+      Small-deflection cantilever plate model. D is rigidity per unit width; q is uniform load per unit area.
+    </footer>
+  </main>
+
+  <script src="config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
